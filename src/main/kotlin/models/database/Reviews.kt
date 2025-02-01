@@ -11,9 +11,9 @@ data class Review(
 )
 
 object Reviews : Table("reviews") {
-    val id = varchar("id", 255).entityId()
-    val authorId = varchar("authorId", 255).references(Users.id)
-    val recipeId = varchar("recipeId", 255).references(Recipes.id)
+    val id = varchar("id", 255)
+    val authorId = varchar("authorId", 36).references(Users.id)
+    val recipeId = varchar("recipeId", 36).references(Recipes.id)
     val reviewText = varchar("reviewText", 255).nullable()
     val likesAmount = integer("likesAmount").default(0)
 }

@@ -10,7 +10,7 @@ data class File(
 )
 
 object Files : Table("files") {
-    val id = varchar("id", 255).entityId()
+    val id = varchar("id", 255)
     val type = enumeration("type", FileType::class)
     val fileOid = integer("fileOid")
 }

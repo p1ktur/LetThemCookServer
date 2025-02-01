@@ -16,8 +16,8 @@ data class Recipe(
 )
 
 object Recipes : Table("recipes") {
-    val id = varchar("id", 255).entityId()
-    val ownerId = varchar("ownerId", 255).references(Users.id)
+    val id = varchar("id", 36)
+    val ownerId = varchar("ownerId", 36).references(Users.id)
     val imageId = varchar("imageId", 255).references(Files.id).nullable()
     val description = varchar("description", 255).nullable()
     val recipeJson = varchar("recipeJson", 255)

@@ -1,4 +1,4 @@
-package models.server
+package models.server.auth
 
 import kotlinx.serialization.Serializable
 

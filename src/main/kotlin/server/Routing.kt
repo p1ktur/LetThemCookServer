@@ -1,17 +1,17 @@
-package routing
+package server
 
+import auth.addAuthRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.configureRouting() {
     routing {
-        get("/") {
-            transaction {
+        addAuthRoutes()
 
-            }
+        get("/") {
+
 
             call.respondText("Hello World!")
         }
