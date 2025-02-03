@@ -1,18 +1,24 @@
-package auth
+package features.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.*
+import io.ktor.utils.io.*
 import models.database.tokens.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import utils.toLocal
+import java.net.URL
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.util.*
 
-object TokensManager {
+object TokenManager {
 
     private const val SECRET_KEY = "LTW77pQchduMVecINRAJL6jXNCj1FZ7XJorZAbXzopTxnn4uMUYpeec7jZkKccQ1"
 
@@ -70,12 +76,13 @@ object TokensManager {
     }
 
     private fun getRefreshTokenFromHeader(headers: Headers): String? {
-        val authHeader = headers["Refresh Token"] ?: return null
+        val authHeader = headers["Refresh-Token"] ?: return null
         val token = authHeader.split(" ").getOrNull(1)
 
         return token
     }
 
+    @OptIn(InternalAPI::class)
     fun getNewAccessToken(userId: String): AccessToken {
         val algorithm = Algorithm.HMAC512(SECRET_KEY)
 
@@ -89,17 +96,16 @@ object TokensManager {
             .withExpiresAt(nowPlusDay)
             .sign(algorithm)
 
-
         val accessTokenObject = AccessToken(
             userId = userId,
             token = accessToken,
-            expireDate = nowPlusDay.toLocal()
+            expireDate = nowPlusDay.toLocalDateTime()
         )
-
 
         return accessTokenObject
     }
 
+    @OptIn(InternalAPI::class)
     fun getNewRefreshToken(userId: String): RefreshToken {
         val algorithm = Algorithm.HMAC512(SECRET_KEY)
 
@@ -116,7 +122,7 @@ object TokensManager {
         val refreshTokenObject = RefreshToken(
             userId = userId,
             token = refreshToken,
-            expireDate = nowPlusMonth.toLocal()
+            expireDate = nowPlusMonth.toLocalDateTime()
         )
 
         return refreshTokenObject
@@ -164,27 +170,28 @@ object TokensManager {
 
     // Parsing
 
+    @OptIn(InternalAPI::class)
     private fun parseToken(token: String): Token? {
         return try {
             val algorithm = Algorithm.HMAC512(SECRET_KEY)
             val verifier = JWT.require(algorithm).build()
             val decodedJWT = verifier.verify(token)
 
-            val type = decodedJWT.getHeaderClaim("Type")?.toString()
+            val type = decodedJWT.getHeaderClaim("Type")?.toString()?.replace("\"", "")
 
             when (type) {
                 "Access" -> {
                     AccessToken(
                         userId = decodedJWT.subject,
                         token = token,
-                        expireDate = decodedJWT.expiresAt.toLocal()
+                        expireDate = decodedJWT.expiresAt.toLocalDateTime()
                     )
                 }
                 "Refresh" -> {
                     RefreshToken(
                         userId = decodedJWT.subject,
                         token = token,
-                        expireDate = decodedJWT.expiresAt.toLocal()
+                        expireDate = decodedJWT.expiresAt.toLocalDateTime()
                     )
                 }
                 else -> null

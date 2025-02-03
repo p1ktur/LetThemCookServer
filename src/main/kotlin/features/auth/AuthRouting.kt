@@ -1,12 +1,12 @@
-package auth
+package features.auth
 
-import auth.TokensManager.checkAccessToken
-import auth.TokensManager.checkRefreshToken
-import auth.TokensManager.findAccessToken
-import auth.TokensManager.findRefreshToken
-import auth.TokensManager.getNewAccessToken
-import auth.TokensManager.getNewRefreshToken
-import auth.TokensManager.getNewTokens
+import features.auth.TokenManager.checkAccessToken
+import features.auth.TokenManager.checkRefreshToken
+import features.auth.TokenManager.findAccessToken
+import features.auth.TokenManager.findRefreshToken
+import features.auth.TokenManager.getNewAccessToken
+import features.auth.TokenManager.getNewRefreshToken
+import features.auth.TokenManager.getNewTokens
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -19,7 +19,6 @@ import models.server.auth.RegistrationData
 import models.server.auth.TokenResponse
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import utils.toLocal
 import java.util.*
 
 fun Routing.addAuthRoutes() {
@@ -106,6 +105,7 @@ fun Routing.addAuthRoutes() {
                     return@post
                 }
             }?.run {
+                data.hashPassword()
                 if (data.password != this[Users.passwordHash]) {
                     call.respond(HttpStatusCode.BadRequest, "Incorred password.")
                     return@post
@@ -115,7 +115,7 @@ fun Routing.addAuthRoutes() {
             }
 
             if (existingUser != null) {
-                val accessToken = findRefreshToken(existingUser.id)
+                val accessToken = findAccessToken(existingUser.id)
 
                 val newAccessToken = if (accessToken == null || accessToken.isExpired()) {
                     val newToken = getNewAccessToken(existingUser.id)

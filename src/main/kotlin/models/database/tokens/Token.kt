@@ -1,14 +1,14 @@
 package models.database.tokens
 
-import java.time.LocalDate
+import java.time.LocalDateTime
 
 interface Token {
     val id: Int
     val userId: String
     val token: String
-    val expireDate: LocalDate
+    val expireDate: LocalDateTime
 }
 
 fun Token.isExpired(): Boolean {
-    return expireDate.isBefore(LocalDate.now())
+    return expireDate.isBefore(LocalDateTime.now())
 }

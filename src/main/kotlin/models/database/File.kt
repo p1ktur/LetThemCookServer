@@ -5,12 +5,10 @@ import org.jetbrains.exposed.sql.Table
 
 data class File(
     val id: String,
-    val type: FileType,
-    val fileOid: Int
+    val type: FileType
 )
 
 object Files : Table("files") {
-    val id = varchar("id", 255)
-    val type = enumeration("type", FileType::class)
-    val fileOid = integer("fileOid")
+    val id = varchar("id", 36)
+    val type = varchar("type", 255)
 }

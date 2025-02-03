@@ -1,25 +1,18 @@
 package server
 
-import auth.addAuthRoutes
+import features.auth.addAuthRoutes
+import features.file.addFileRoutes
+import features.user.addUserRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.NonCancellable.children
 
 fun Application.configureRouting() {
     routing {
         addAuthRoutes()
-
-        get("/") {
-
-
-            call.respondText("Hello World!")
-        }
-
-        get("/test1") {
-            val text = "<h1>Hello From Ktor</h1>"
-            val type = ContentType.parse("text/html")
-            call.respondText(text, type)
-        }
+        addUserRoutes()
+        addFileRoutes()
     }
 }

@@ -1,5 +1,6 @@
 package models.enums
 
-enum class FileType {
-    IMAGE, VIDEO
+enum class FileType(val value: String) {
+    IMAGE("image"),
+    VIDEO("video")
 }
