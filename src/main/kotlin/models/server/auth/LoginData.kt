@@ -1,6 +1,6 @@
 package models.server.auth
 
-import features.auth.hash
+import utils.hash
 import kotlinx.serialization.Serializable
 
 @Serializable

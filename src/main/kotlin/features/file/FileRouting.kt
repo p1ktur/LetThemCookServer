@@ -135,17 +135,17 @@ fun Routing.addFileRoutes() {
             multipart.forEachPart { part ->
                 if (part is PartData.FileItem && part.name == "file") {
                     val fileBytes = part.provider.invoke().toByteArray()
+                    val fileMaxSize = when (type) {
+                        FileType.IMAGE -> 10 * 1024 * 1024
+                        FileType.VIDEO -> 20 * 1024 * 1024
+                    }
 
-                    println("${fileBytes.size}")
-
-                    if (fileBytes.size > 10 * 1024 * 1024) {
+                    if (fileBytes.size > fileMaxSize) {
                         call.respond(HttpStatusCode.NotAcceptable, "File size must be under 5 MB.")
                         return@forEachPart
                     }
 
                     val saveResult = FileManager.saveFile(userId, fileId, type, fileBytes, fileClass)
-
-                    println(saveResult)
 
                     if (!saveResult) {
                         call.respond(HttpStatusCode.InternalServerError)

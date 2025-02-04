@@ -11,7 +11,7 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import models.database.User
-import models.database.User.Companion.asUser
+import models.database.User.Companion.asUserData
 import models.database.Users
 import models.database.tokens.*
 import models.server.auth.LoginData
@@ -27,9 +27,9 @@ fun Routing.addAuthRoutes() {
             data.hashPassword()
 
             val existingUser = transaction {
-                Users.select {
-                    (Users.login eq data.login) or (Users.email eq data.email)
-                }.singleOrNull()
+                Users
+                    .select { (Users.login eq data.login) or (Users.email eq data.email) }
+                    .singleOrNull()
             }
 
             if (existingUser == null) {
@@ -81,23 +81,23 @@ fun Routing.addAuthRoutes() {
             val existingUser = when {
                 data.login != null -> {
                     transaction {
-                        Users.select {
-                            Users.login eq data.login
-                        }.singleOrNull()
+                        Users
+                            .select { Users.login eq data.login }
+                            .singleOrNull()
                     }
                 }
                 data.email != null -> {
                     transaction {
-                        Users.select {
-                            Users.email eq data.email
-                        }.singleOrNull()
+                        Users
+                            .select { Users.email eq data.email }
+                            .singleOrNull()
                     }
                 }
                 data.phoneNumber != null -> {
                     transaction {
-                        Users.select {
-                            Users.phone eq data.phoneNumber
-                        }.singleOrNull()
+                        Users
+                            .select { Users.phone eq data.phoneNumber }
+                            .singleOrNull()
                     }
                 }
                 else -> {
@@ -111,7 +111,7 @@ fun Routing.addAuthRoutes() {
                     return@post
                 }
 
-                asUser()
+                asUserData()
             }
 
             if (existingUser != null) {
@@ -213,10 +213,10 @@ fun Routing.addAuthRoutes() {
             val refreshToken = checkRefreshToken()
 
             val existingUser = transaction {
-                Users.select {
-                    Users.id eq userId
-                }.singleOrNull()
-            }?.asUser()
+                Users
+                    .select { Users.id eq userId }
+                    .singleOrNull()
+            }?.asUserData()
 
             if (existingUser == null) {
                 call.respond(HttpStatusCode.NotFound, "User does not exist.")

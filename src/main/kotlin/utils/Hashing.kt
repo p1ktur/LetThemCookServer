@@ -1,4 +1,4 @@
-package features.auth
+package utils
 
 import java.security.MessageDigest
 

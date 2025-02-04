@@ -11,7 +11,9 @@ import models.serializers.LocalDateTimeSerializer
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.date
+import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Serializable
 data class User(
@@ -22,15 +24,16 @@ data class User(
     val name: String? = null,
     val surname: String? = null,
     val about: String? = null,
-    @Serializable(with = LocalDateTimeSerializer::class) val birthDate: LocalDate? = null,
+    @Serializable(with = LocalDateTimeSerializer::class) val birthDate: LocalDateTime? = null,
     val profilePictureId: String? = null,
     val averageRating: Float = 0f, // TODO count rating before returning it in requests
     val totalRecipes: Int = 0,
     val totalPreparations: Int = 0,
-    val totalFollowers: Int = 0
+    val totalFollowers: Int = 0,
+    var isFollowed: Boolean = false
 ) {
     companion object {
-        fun ResultRow.asUser(): User {
+        fun ResultRow.asUserData(): User {
             return User(
                 id = this[Users.id],
                 login = this[Users.login],
@@ -59,7 +62,7 @@ object Users : Table("users") {
     val name = varchar("name", 255).nullable()
     val surname = varchar("surname", 255).nullable()
     val about = varchar("about", 255).nullable()
-    val birthDate = date("birthDate").nullable()
+    val birthDate = datetime("birthDate").nullable()
     val profilePictureId = varchar("profilePictureId", 255).references(Files.id).nullable()
     val averageRating = float("averageRating").default(0f)
     val totalRecipes = integer("totalRecipes").default(0)

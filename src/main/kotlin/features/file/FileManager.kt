@@ -1,14 +1,12 @@
 package features.file
 
-import features.auth.smallHash
+import utils.smallHash
 import models.database.Files
-import models.database.Files.type
 import models.enums.FileType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.io.File
@@ -38,9 +36,9 @@ object FileManager {
             file.writeBytes(bytes)
 
             val existingFile = transaction {
-                Files.select {
-                    Files.id eq fileId
-                }.singleOrNull()
+                Files
+                    .select { Files.id eq fileId }
+                    .singleOrNull()
             }
 
             if (existingFile != null) {
@@ -72,9 +70,9 @@ object FileManager {
     fun getFile(userId: String, fileId: String, type: FileType, fileClass: FileClass): File? {
         return try {
             val existingFile = transaction {
-                Files.select {
-                    Files.id eq fileId
-                }.singleOrNull()
+                Files
+                    .select { Files.id eq fileId }
+                    .singleOrNull()
             }
 
             if (existingFile == null) return null

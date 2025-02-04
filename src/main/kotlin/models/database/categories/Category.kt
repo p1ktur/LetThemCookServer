@@ -1,7 +1,9 @@
-package models.database
+package models.database.categories
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.Table
 
+@Serializable
 data class Category(
     val id: Int = 0,
     val name: String

@@ -2,6 +2,8 @@ package server
 
 import features.auth.addAuthRoutes
 import features.file.addFileRoutes
+import features.recipe.addRecipeRoutes
+import features.recipe.addRecipeSecondaryRoutes
 import features.user.addUserRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -14,5 +16,7 @@ fun Application.configureRouting() {
         addAuthRoutes()
         addUserRoutes()
         addFileRoutes()
+        addRecipeRoutes()
+        addRecipeSecondaryRoutes()
     }
 }

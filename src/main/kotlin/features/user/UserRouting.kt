@@ -1,19 +1,57 @@
 package features.user
 
 import features.auth.TokenManager.checkAccessToken
-import features.auth.hash
+import utils.hash
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import models.database.Followings
 import models.database.User
-import models.database.User.Companion.asUser
+import models.database.User.Companion.asUserData
 import models.database.Users
 import models.server.RequestPair
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
+import utils.decode
+import utils.selectPage
 
 fun Routing.addUserRoutes() {
+    get("/users") {
+        try {
+            val accessToken = checkAccessToken()
+
+            if (accessToken == null) {
+                call.respond(HttpStatusCode.Unauthorized, "Access token expired or absent.")
+                return@get
+            }
+
+            val page = call.request.queryParameters["page"]?.toIntOrNull()
+            val perPage = call.request.queryParameters["perPage"]?.toIntOrNull()
+
+            val searchText = call.request.queryParameters["searchText"]?.decode() ?: ""
+
+            val users = transaction {
+                Users
+                    .select { (Users.login like "%$searchText%") and (Users.id neq accessToken.userId) }
+                    .toList()
+                    .selectPage(page, perPage)
+                    .map { it.asUserData() }
+            }
+
+            if (users.isEmpty()) {
+                call.respond(HttpStatusCode.NotFound, "No users found.")
+                return@get
+            }
+
+            call.respond(HttpStatusCode.OK, users)
+        } catch (_: Exception) {
+            call.respond(HttpStatusCode.InternalServerError)
+        }
+    }
+
     get("/user") {
         try {
             if (checkAccessToken() == null) {
@@ -29,10 +67,10 @@ fun Routing.addUserRoutes() {
             }
 
             val user = transaction {
-                Users.select {
-                    Users.id eq userId
-                }.singleOrNull()
-            }?.asUser()
+                Users
+                    .select { Users.id eq userId }
+                    .singleOrNull()
+            }?.asUserData()
 
             if (user == null) {
                 call.respond(HttpStatusCode.NotFound, "No such user exists.")
@@ -87,6 +125,81 @@ fun Routing.addUserRoutes() {
         }
     }
 
+    post("/follow") {
+        try {
+            val accessToken = checkAccessToken()
+
+            if (accessToken == null) {
+                call.respond(HttpStatusCode.Unauthorized, "Access token expired or absent.")
+                return@post
+            }
+
+            val userId = call.request.queryParameters["id"]
+
+            if (userId == null) {
+                call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
+                return@post
+            }
+
+            transaction {
+                Followings.insert {
+                    it[followerId] = accessToken.userId
+                    it[followedId] = userId
+                }
+
+                Users.update(
+                    where = {
+                        Users.id eq userId
+                    },
+                    body = {
+                        it.update(totalFollowers, totalFollowers + 1)
+                    }
+                )
+            }
+
+            call.respond(HttpStatusCode.OK)
+        } catch (_: Exception) {
+            call.respond(HttpStatusCode.InternalServerError)
+        }
+    }
+
+    post("/unfollow") {
+        try {
+            val accessToken = checkAccessToken()
+
+            if (accessToken == null) {
+                call.respond(HttpStatusCode.Unauthorized, "Access token expired or absent.")
+                return@post
+            }
+
+            val userId = call.request.queryParameters["id"]
+
+            if (userId == null) {
+                call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
+                return@post
+            }
+
+            transaction {
+                Followings.deleteWhere {
+                    (followerId eq accessToken.userId) and (followedId eq userId)
+                }
+
+                Users.update(
+                    where = {
+                        Users.id eq userId
+                    },
+                    body = {
+                        it.update(totalFollowers, totalFollowers - 1)
+                    }
+                )
+            }
+
+            call.respond(HttpStatusCode.OK)
+        } catch (_: Exception) {
+            call.respond(HttpStatusCode.InternalServerError)
+        }
+    }
+
     put<RequestPair>("/update_password") { data ->
         try {
             val accessToken = checkAccessToken()
@@ -109,9 +222,9 @@ fun Routing.addUserRoutes() {
             }
 
             val oldPassword = transaction {
-                Users.select {
-                    Users.id eq userId
-                }.singleOrNull()
+                Users
+                    .select { Users.id eq userId }
+                    .singleOrNull()
             }?.run {
                 this[Users.passwordHash]
             }
