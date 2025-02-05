@@ -3,7 +3,6 @@ package features.auth
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.*
@@ -12,10 +11,6 @@ import models.database.tokens.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import utils.toLocal
-import java.net.URL
-import java.net.URLDecoder
-import java.net.URLEncoder
 import java.util.*
 
 object TokenManager {

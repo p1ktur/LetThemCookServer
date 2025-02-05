@@ -1,4 +1,4 @@
-package models.database
+package models.database.files
 
 import models.enums.FileType
 import org.jetbrains.exposed.sql.Table

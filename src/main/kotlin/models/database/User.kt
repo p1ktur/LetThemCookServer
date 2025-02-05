@@ -7,12 +7,11 @@ import models.database.Users.phone
 import models.database.Users.surname
 import models.database.Users.totalFollowers
 import models.database.Users.totalPreparations
+import models.database.files.Files
 import models.serializers.LocalDateTimeSerializer
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.datetime
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Serializable
@@ -25,7 +24,7 @@ data class User(
     val surname: String? = null,
     val about: String? = null,
     @Serializable(with = LocalDateTimeSerializer::class) val birthDate: LocalDateTime? = null,
-    val profilePictureId: String? = null,
+    val profileBitmapId: String? = null,
     val averageRating: Float = 0f, // TODO count rating before returning it in requests
     val totalRecipes: Int = 0,
     val totalPreparations: Int = 0,
@@ -43,7 +42,7 @@ data class User(
                 surname = this[surname],
                 about = this[Users.about],
                 birthDate = this[birthDate],
-                profilePictureId = this[Users.profilePictureId],
+                profileBitmapId = this[Users.profileBitmapId],
                 averageRating = this[averageRating],
                 totalRecipes = this[Users.totalRecipes],
                 totalPreparations = this[totalPreparations],
@@ -63,7 +62,7 @@ object Users : Table("users") {
     val surname = varchar("surname", 255).nullable()
     val about = varchar("about", 255).nullable()
     val birthDate = datetime("birthDate").nullable()
-    val profilePictureId = varchar("profilePictureId", 255).references(Files.id).nullable()
+    val profileBitmapId = varchar("profilePictureId", 255).references(Files.id).nullable()
     val averageRating = float("averageRating").default(0f)
     val totalRecipes = integer("totalRecipes").default(0)
     val totalPreparations = integer("totalPreparations").default(0)

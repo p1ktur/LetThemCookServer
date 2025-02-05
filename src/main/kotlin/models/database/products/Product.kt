@@ -9,17 +9,6 @@ data class Product(
     val name: String
 ) {
     companion object {
-        fun toWeightedProduct(name: String, weight: Int, amount: Int): String {
-            return StringBuilder().apply {
-                append(name)
-                if (weight > 0) append(", ${weight}g")
-                if (amount > 0) {
-                    val piecesSuffix = if (amount == 1) "pc" else "pcs"
-                    append(", $amount $piecesSuffix")
-                }
-            }.toString()
-        }
-
         fun fromWeightedProduct(text: String): Triple<String, Int, Int> {
             val parts = text.split(", ")
             val name = parts.firstOrNull().toString()
@@ -28,6 +17,24 @@ data class Product(
 
             return Triple(name, weight, amount)
         }
+    }
+}
+
+@Serializable
+data class WeightedProduct(
+    val data: Product,
+    val weight: Int,
+    val amount: Int
+) {
+    override fun toString(): String {
+        return StringBuilder().apply {
+            append(data.name)
+            if (weight > 0) append(", ${weight}g")
+            if (amount > 0) {
+                val piecesSuffix = if (amount == 1) "pc" else "pcs"
+                append(", $amount $piecesSuffix")
+            }
+        }.toString()
     }
 }
 

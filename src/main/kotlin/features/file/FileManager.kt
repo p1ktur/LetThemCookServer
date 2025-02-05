@@ -1,7 +1,7 @@
 package features.file
 
 import utils.smallHash
-import models.database.Files
+import models.database.files.Files
 import models.enums.FileType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere

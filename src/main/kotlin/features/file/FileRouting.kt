@@ -3,13 +3,10 @@ package features.file
 import features.auth.TokenManager.checkAccessToken
 import io.ktor.http.*
 import io.ktor.http.content.*
-import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
-import kotlinx.io.readByteArray
 import models.enums.FileType
 
 fun Routing.addFileRoutes() {

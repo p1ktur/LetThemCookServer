@@ -110,7 +110,7 @@ fun Routing.addUserRoutes() {
                         it[surname] = data.surname
                         it[about] = data.about
                         it[birthDate] = data.birthDate
-                        it[profilePictureId] = data.profilePictureId
+                        it[profileBitmapId] = data.profileBitmapId
                         it[averageRating] = data.averageRating
                         it[totalRecipes] = data.totalRecipes
                         it[totalPreparations] = data.totalPreparations

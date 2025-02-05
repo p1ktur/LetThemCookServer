@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 import models.database.Users
 import models.serializers.LocalDateTimeSerializer
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
 

@@ -7,11 +7,13 @@ import io.ktor.server.routing.*
 import models.database.*
 import models.database.Recipe.Companion.asRecipeData
 import models.database.categories.Categories
+import models.database.categories.Category
 import models.database.categories.RecipeCategories
 import models.database.categories.RecipeCategories.categoryId
 import models.database.products.Product
 import models.database.products.Products
 import models.database.products.RecipeProducts
+import models.database.products.WeightedProduct
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
@@ -229,8 +231,10 @@ fun Routing.addRecipeRoutes() {
                         .join(Products, JoinType.INNER, onColumn = RecipeProducts.productId, otherColumn = Products.id)
                         .select { RecipeProducts.recipeId eq recipe.id }
                         .toList()
-                }.map {
-                    Product.toWeightedProduct(it[Products.name], it[RecipeProducts.weight], it[RecipeProducts.amount])
+                        .map {
+                            val product = Product(it[Products.id], it[Products.name])
+                            WeightedProduct(product, it[RecipeProducts.weight], it[RecipeProducts.amount])
+                        }
                 }
 
                 val recipeCategories = transaction {
@@ -238,8 +242,7 @@ fun Routing.addRecipeRoutes() {
                         .join(Categories, JoinType.INNER, onColumn = categoryId, otherColumn = Categories.id)
                         .select { RecipeCategories.recipeId eq recipe.id }
                         .toList()
-                }.map {
-                    it[Categories.name]
+                        .map { Category(it[Categories.id], it[Categories.name]) }
                 }
 
                 recipe.products = recipeProducts
@@ -291,8 +294,10 @@ fun Routing.addRecipeRoutes() {
                     .join(Products, JoinType.INNER, onColumn = RecipeProducts.productId, otherColumn = Products.id)
                     .select { RecipeProducts.recipeId eq recipe.id }
                     .toList()
-            }.map {
-                Product.toWeightedProduct(it[Products.name], it[RecipeProducts.weight], it[RecipeProducts.amount])
+                    .map {
+                        val product = Product(it[Products.id], it[Products.name])
+                        WeightedProduct(product, it[RecipeProducts.weight], it[RecipeProducts.amount])
+                    }
             }
 
             val recipeCategories = transaction {
@@ -300,8 +305,7 @@ fun Routing.addRecipeRoutes() {
                     .join(Categories, JoinType.INNER, onColumn = categoryId, otherColumn = Categories.id)
                     .select { RecipeCategories.recipeId eq recipeId }
                     .toList()
-            }.map {
-                it[Categories.name]
+                    .map { Category(it[Categories.id], it[Categories.name]) }
             }
 
             recipe.products = recipeProducts
@@ -338,7 +342,7 @@ fun Routing.addRecipeRoutes() {
                     Recipes.insert {
                         it[id] = data.id
                         it[ownerId] = data.ownerId
-                        it[imageId] = data.imageId
+                        it[bitmapId] = data.bitmapId
                         it[description] = data.description
                         it[recipeJson] = data.recipeJson
                         it[likesAmount] = data.likesAmount
@@ -349,28 +353,32 @@ fun Routing.addRecipeRoutes() {
                 }
 
                 transaction {
-                    data.products.forEach { text ->
-                        val (name, weight, amount) = Product.fromWeightedProduct(text)
-
-                        Products.select { Products.name eq name }.singleOrNull()?.run {
-                            RecipeProducts.insert {
-                                it[productId] = this@run[Products.id]
-                                it[recipeId] = recipeId
-                                it[RecipeProducts.weight] = weight
-                                it[RecipeProducts.amount] = amount
+                    data.products.forEach { weightedProduct ->
+                        Products
+                            .select { Products.name eq weightedProduct.data.name }
+                            .singleOrNull()
+                            ?.run {
+                                RecipeProducts.insert {
+                                    it[productId] = this@run[Products.id]
+                                    it[recipeId] = recipeId
+                                    it[weight] = weightedProduct.weight
+                                    it[amount] = weightedProduct.amount
+                                }
                             }
-                        }
                     }
                 }
 
                 transaction {
-                    data.categories.forEach { name ->
-                        Categories.select { Categories.name eq name }.singleOrNull()?.run {
-                            RecipeCategories.insert {
-                                it[categoryId] = this@run[Categories.id]
-                                it[recipeId] = recipeId
+                    data.categories.forEach { category ->
+                        Categories
+                            .select { Categories.name eq category.name }
+                            .singleOrNull()
+                            ?.run {
+                                RecipeCategories.insert {
+                                    it[categoryId] = this@run[Categories.id]
+                                    it[recipeId] = recipeId
+                                }
                             }
-                        }
                     }
                 }
             } else {
@@ -380,14 +388,10 @@ fun Routing.addRecipeRoutes() {
                             Recipes.id eq data.id
                         },
                         body = {
-                            it[ownerId] = data.ownerId
-                            it[imageId] = data.imageId
+                            it[bitmapId] = data.bitmapId
+                            it[name] = data.name
                             it[description] = data.description
                             it[recipeJson] = data.recipeJson
-                            it[likesAmount] = data.likesAmount
-                            it[dislikesAmount] = data.dislikesAmount
-                            it[viewsAmount] = data.viewsAmount
-                            it[preparationsAmount] = data.preparationsAmount
                         }
                     )
                 }
@@ -397,19 +401,17 @@ fun Routing.addRecipeRoutes() {
                         recipeId eq data.id
                     }
 
-                    data.products.forEach { text ->
-                        val (name, weight, amount) = Product.fromWeightedProduct(text)
-
+                    data.products.forEach {  weightedProduct ->
                         Products
-                            .select { Products.name eq name }
+                            .select { Products.name eq weightedProduct.data.name }
                             .singleOrNull()?.run {
-                            RecipeProducts.insert {
-                                it[productId] = this@run[Products.id]
-                                it[recipeId] = recipeId
-                                it[RecipeProducts.weight] = weight
-                                it[RecipeProducts.amount] = amount
+                                RecipeProducts.insert {
+                                    it[productId] = this@run[Products.id]
+                                    it[recipeId] = recipeId
+                                    it[weight] = weight
+                                    it[amount] = amount
+                                }
                             }
-                        }
                     }
                 }
 
@@ -418,15 +420,15 @@ fun Routing.addRecipeRoutes() {
                         recipeId eq data.id
                     }
 
-                    data.categories.forEach { name ->
+                    data.categories.forEach { category ->
                         Categories
-                            .select { Categories.name eq name }
+                            .select { Categories.name eq category.name }
                             .singleOrNull()?.run {
-                            RecipeCategories.insert {
-                                it[categoryId] = this@run[Categories.id]
-                                it[recipeId] = recipeId
+                                RecipeCategories.insert {
+                                    it[categoryId] = this@run[Categories.id]
+                                    it[recipeId] = recipeId
+                                }
                             }
-                        }
                     }
                 }
             }
