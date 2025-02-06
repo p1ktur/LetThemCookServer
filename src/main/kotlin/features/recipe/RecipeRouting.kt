@@ -451,7 +451,7 @@ fun Routing.addRecipeRoutes() {
             val recipeId = call.request.queryParameters["recipeId"]
 
             if (recipeId == null) {
-                call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
+                call.respond(HttpStatusCode.BadRequest, "No Recipe ID provided.")
                 return@delete
             }
 

@@ -1,4 +1,4 @@
-package features.file;
+package features.file
 
 sealed interface FileClass {
     data object Profile : FileClass

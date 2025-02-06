@@ -1,7 +1,9 @@
 package models.database
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.Table
 
+@Serializable
 data class Review(
     val id: String,
     val authorId: String,
