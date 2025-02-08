@@ -25,7 +25,7 @@ data class User(
     val about: String? = null,
     @Serializable(with = LocalDateTimeSerializer::class) val birthDate: LocalDateTime? = null,
     val profileBitmapId: String? = null,
-    var averageRating: Float = 0f, // TODO count rating before returning it in requests
+    var averageRating: Float = 0f,
     var totalRecipes: Int = 0,
     var totalPreparations: Int = 0,
     var totalFollowers: Int = 0,
