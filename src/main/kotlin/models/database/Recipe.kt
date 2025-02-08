@@ -17,8 +17,8 @@ data class Recipe(
     val authorLogin: String, // Not in DB
     val name: String?,
     val description: String?,
-    val cookingTime: Long,
-    val recipeJson: String,
+    val cookingTime: Long?,
+    val recipeJson: String?,
     val likesAmount: Int = 0,
     val dislikesAmount: Int = 0,
     val viewsAmount: Int = 0,
@@ -27,7 +27,7 @@ data class Recipe(
     var products: List<WeightedProduct> = emptyList(), // Not in DB
     var categories: List<Category> = emptyList(), // Not in DB
     var attachmentIds: List<String> = emptyList(), // Not in DB
-    @Serializable(with = LocalDateTimeSerializer::class) var publicationDate: LocalDateTime?
+    @Serializable(with = LocalDateTimeSerializer::class) var publicationDate: LocalDateTime
 ) {
     companion object {
         fun ResultRow.asRecipeData(reviewsAmountColumn: Count): Recipe {
@@ -57,8 +57,8 @@ object Recipes : Table("recipes") {
     val bitmapId = varchar("imageId", 255).references(Files.id).nullable()
     val name = varchar("name", 255).nullable()
     val description = varchar("description", 255).nullable()
-    val cookingTime = long("cookingTime")
-    val recipeJson = varchar("recipeJson", 255)
+    val cookingTime = long("cookingTime").nullable()
+    val recipeJson = varchar("recipeJson", 255).nullable()
     val likesAmount = integer("likesAmount").default(0)
     val dislikesAmount = integer("dislikesAmount").default(0)
     val viewsAmount = integer("viewsAmount").default(0)

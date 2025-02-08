@@ -1,6 +1,8 @@
 package features.recipe
 
 import features.auth.TokenManager.checkAccessToken
+import features.file.FileClass
+import features.file.FileManager
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -10,12 +12,18 @@ import models.database.categories.Categories
 import models.database.categories.Category
 import models.database.categories.RecipeCategories
 import models.database.categories.RecipeCategories.categoryId
+import models.database.files.Files
+import models.database.files.RecipeFiles
+import models.database.files.RecipeFiles.fileId
 import models.database.products.Product
 import models.database.products.Products
 import models.database.products.RecipeProducts
 import models.database.products.WeightedProduct
+import models.enums.FileType
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.transactions.transaction
 import utils.decode
@@ -210,8 +218,8 @@ fun Routing.addRecipeRoutes() {
                             .join(Users, JoinType.INNER, onColumn = Recipes.ownerId, otherColumn = Users.id)
                             .join(Reviews, JoinType.LEFT, onColumn = Recipes.id, otherColumn = Reviews.recipeId)
                             .slice(Recipes.columns + reviewsCount + Users.login)
-                            .select { Followings.followerId eq accessToken.userId }
-                            .groupBy(Recipes.id)
+                            .select { (Followings.followerId eq accessToken.userId) or (Recipes.ownerId eq accessToken.userId) }
+                            .groupBy(Recipes.id, Users.login)
                             .orderBy(Recipes.publicationDate to SortOrder.DESC)
                             .toList()
                             .selectPage(page, perPage)
@@ -245,8 +253,16 @@ fun Routing.addRecipeRoutes() {
                         .map { Category(it[Categories.id], it[Categories.name]) }
                 }
 
+                val attachmentIds = transaction {
+                    RecipeFiles
+                        .select { RecipeFiles.recipeId eq recipe.id }
+                        .toList()
+                        .map { it[fileId] }
+                }
+
                 recipe.products = recipeProducts
                 recipe.categories = recipeCategories
+                recipe.attachmentIds = attachmentIds
             }
 
             call.respond(HttpStatusCode.OK, recipes)
@@ -276,10 +292,10 @@ fun Routing.addRecipeRoutes() {
 
                 Recipes
                     .join(Reviews, JoinType.LEFT, onColumn = Recipes.id, otherColumn = Reviews.recipeId)
-                    .slice(Recipes.columns + reviewsCount)
+                    .join(Users, JoinType.INNER, onColumn = Recipes.ownerId, otherColumn = Users.id)
+                    .slice(Recipes.columns + reviewsCount + Users.login)
                     .select { Recipes.id eq recipeId }
-                    .groupBy(Recipes.id)
-                    .orderBy(Recipes.publicationDate to SortOrder.DESC)
+                    .groupBy(Recipes.id, Users.login)
                     .singleOrNull()
                     ?.asRecipeData(reviewsCount)
             }
@@ -308,8 +324,16 @@ fun Routing.addRecipeRoutes() {
                     .map { Category(it[Categories.id], it[Categories.name]) }
             }
 
+            val attachmentIds = transaction {
+                RecipeFiles
+                    .select { RecipeFiles.recipeId eq recipeId }
+                    .toList()
+                    .map { it[fileId] }
+            }
+
             recipe.products = recipeProducts
             recipe.categories = recipeCategories
+            recipe.attachmentIds = attachmentIds
 
             call.respond(HttpStatusCode.OK, recipe)
         } catch (_: Exception) {
@@ -349,36 +373,60 @@ fun Routing.addRecipeRoutes() {
                         it[dislikesAmount] = data.dislikesAmount
                         it[viewsAmount] = data.viewsAmount
                         it[preparationsAmount] = data.preparationsAmount
+                        it[publicationDate] = data.publicationDate
                     }
                 }
 
                 transaction {
-                    data.products.forEach { weightedProduct ->
+                    Users.update(
+                        where = {
+                            Users.id eq data.ownerId
+                        },
+                        body = {
+                            it.update(totalRecipes, totalRecipes + 1)
+                        }
+                    )
+                }
+
+                val products = transaction {
+                    data.products.map { weightedProduct ->
                         Products
                             .select { Products.name eq weightedProduct.data.name }
                             .singleOrNull()
-                            ?.run {
-                                RecipeProducts.insert {
-                                    it[productId] = this@run[Products.id]
-                                    it[recipeId] = recipeId
-                                    it[weight] = weightedProduct.weight
-                                    it[amount] = weightedProduct.amount
-                                }
-                            }
+                            ?.to(weightedProduct)
                     }
                 }
 
-                transaction {
-                    data.categories.forEach { category ->
+                products.forEach { column ->
+                    transaction {
+                        if (column != null) {
+                            val (product, weightedProduct) = column
+                            RecipeProducts.insert {
+                                it[productId] = product[Products.id]
+                                it[recipeId] = data.id
+                                it[weight] = weightedProduct.weight
+                                it[amount] = weightedProduct.amount
+                            }
+                        }
+                    }
+                }
+
+                val categories = transaction {
+                    data.categories.map { category ->
                         Categories
                             .select { Categories.name eq category.name }
                             .singleOrNull()
-                            ?.run {
-                                RecipeCategories.insert {
-                                    it[categoryId] = this@run[Categories.id]
-                                    it[recipeId] = recipeId
-                                }
+                    }
+                }
+
+                categories.forEach { category ->
+                    transaction {
+                        if (category != null) {
+                            RecipeCategories.insert {
+                                it[categoryId] = category[Categories.id]
+                                it[recipeId] = data.id
                             }
+                        }
                     }
                 }
             } else {
@@ -396,40 +444,66 @@ fun Routing.addRecipeRoutes() {
                     )
                 }
 
-                transaction {
+                val products = transaction {
                     RecipeProducts.deleteWhere {
                         recipeId eq data.id
                     }
 
-                    data.products.forEach {  weightedProduct ->
+                    data.products.map { weightedProduct ->
                         Products
                             .select { Products.name eq weightedProduct.data.name }
-                            .singleOrNull()?.run {
-                                RecipeProducts.insert {
-                                    it[productId] = this@run[Products.id]
-                                    it[recipeId] = recipeId
-                                    it[weight] = weight
-                                    it[amount] = amount
-                                }
-                            }
+                            .singleOrNull()
+                            ?.to(weightedProduct)
                     }
                 }
 
-                transaction {
+                products.forEach { column ->
+                    transaction {
+                        if (column != null) {
+                            val (product, weightedProduct) = column
+                            RecipeProducts.insert {
+                                it[productId] = product[Products.id]
+                                it[recipeId] = data.id
+                                it[weight] = weightedProduct.weight
+                                it[amount] = weightedProduct.amount
+                            }
+                        }
+                    }
+                }
+
+                val categories = transaction {
                     RecipeCategories.deleteWhere {
                         recipeId eq data.id
                     }
 
-                    data.categories.forEach { category ->
+                    data.categories.map { category ->
                         Categories
                             .select { Categories.name eq category.name }
-                            .singleOrNull()?.run {
-                                RecipeCategories.insert {
-                                    it[categoryId] = this@run[Categories.id]
-                                    it[recipeId] = recipeId
-                                }
-                            }
+                            .singleOrNull()
                     }
+                }
+
+                categories.forEach { category ->
+                    transaction {
+                        if (category != null) {
+                            RecipeCategories.insert {
+                                it[categoryId] = category[Categories.id]
+                                it[recipeId] = data.id
+                            }
+                        }
+                    }
+                }
+
+                val toDeleteFiles = transaction {
+                    RecipeFiles
+                        .join(Files, JoinType.INNER, onColumn = fileId, otherColumn = Files.id)
+                        .select { (RecipeFiles.recipeId eq data.id) and (fileId notInList data.attachmentIds) }
+                        .toList()
+                        .map { it[fileId] to FileType.fromString(it[Files.type]) }
+                }
+
+                toDeleteFiles.forEach { (fileId, type) ->
+                    FileManager.deleteFile(data.ownerId, fileId, type, FileClass.RecipeAttachment(data.id))
                 }
             }
 
@@ -455,19 +529,15 @@ fun Routing.addRecipeRoutes() {
                 return@delete
             }
 
-            if (accessToken.userId != recipeId) {
+            val userId = transaction {
+                Recipes
+                    .select { Recipes.id eq recipeId }
+                    .singleOrNull()
+                    ?.let { it[Recipes.ownerId] }
+            }
+
+            if (accessToken.userId != userId) {
                 call.respond(HttpStatusCode.Unauthorized, "Wrong access token.")
-                return@delete
-            }
-
-            val rowsAffected = transaction {
-                Users.deleteWhere {
-                    Recipes.id eq recipeId
-                }
-            }
-
-            if (rowsAffected == 0) {
-                call.respond(HttpStatusCode.NotFound, "Recipe was not deleted.")
                 return@delete
             }
 
@@ -479,6 +549,15 @@ fun Routing.addRecipeRoutes() {
                 RecipeCategories.deleteWhere {
                     RecipeCategories.recipeId eq recipeId
                 }
+            }
+
+            val rowsAffected = transaction {
+                Recipes.deleteWhere { id eq recipeId }
+            }
+
+            if (rowsAffected == 0) {
+                call.respond(HttpStatusCode.NotFound, "Recipe was not deleted.")
+                return@delete
             }
 
             call.respond(HttpStatusCode.OK)

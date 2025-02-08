@@ -9,6 +9,7 @@ fun Application.configureContentNegotiation() {
     install(ContentNegotiation) {
         json(
             Json {
+                explicitNulls = true
                 encodeDefaults = true
                 ignoreUnknownKeys = true
                 prettyPrint = true

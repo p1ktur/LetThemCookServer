@@ -2,6 +2,7 @@ package features.file
 
 import utils.smallHash
 import models.database.files.Files
+import models.database.files.RecipeFiles
 import models.enums.FileType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -59,6 +60,15 @@ object FileManager {
                         it[Files.type] = type.value
                     }
                 }
+
+                if (fileClass is FileClass.RecipeAttachment) {
+                    transaction {
+                        RecipeFiles.insert {
+                            it[RecipeFiles.fileId] = fileId
+                            it[recipeId] = fileClass.recipeId
+                        }
+                    }
+                }
             }
 
             true
@@ -114,6 +124,14 @@ object FileManager {
                     }
                 }
 
+                if (fileClass is FileClass.RecipeAttachment) {
+                    transaction {
+                        RecipeFiles.deleteWhere {
+                            RecipeFiles.fileId eq fileId
+                        }
+                    }
+                }
+
                 true
             } else {
                 false
@@ -124,14 +142,11 @@ object FileManager {
     }
 
     private fun getDirPath(userId: String, fileClass: FileClass): String {
-        var dirPath = FILE_ROOT_PATH + "\\user_${userId.smallHash()}"
-        when (fileClass) {
-            FileClass.Profile -> dirPath += "\\profile"
-            is FileClass.Recipe -> dirPath += "\\recipe_${fileClass.recipeId.smallHash()}\\profile"
+        return FILE_ROOT_PATH + "\\user_${userId.smallHash()}" + when (fileClass) {
+            FileClass.Profile -> "\\profile"
+            is FileClass.Recipe -> "\\recipe_${fileClass.recipeId.smallHash()}\\profile"
             is FileClass.RecipeAttachment -> "\\recipe_${fileClass.recipeId.smallHash()}\\attachments"
             is FileClass.Block -> "\\recipe_${fileClass.recipeId.smallHash()}\\block_${fileClass.blockId.smallHash()}"
         }
-
-        return dirPath
     }
 }

@@ -25,10 +25,10 @@ data class User(
     val about: String? = null,
     @Serializable(with = LocalDateTimeSerializer::class) val birthDate: LocalDateTime? = null,
     val profileBitmapId: String? = null,
-    val averageRating: Float = 0f, // TODO count rating before returning it in requests
-    val totalRecipes: Int = 0,
-    val totalPreparations: Int = 0,
-    val totalFollowers: Int = 0,
+    var averageRating: Float = 0f, // TODO count rating before returning it in requests
+    var totalRecipes: Int = 0,
+    var totalPreparations: Int = 0,
+    var totalFollowers: Int = 0,
     var isFollowed: Boolean = false
 ) {
     companion object {

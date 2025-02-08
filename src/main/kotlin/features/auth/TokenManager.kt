@@ -29,10 +29,14 @@ object TokenManager {
         }
 
         val existingAccessToken = transaction {
-            AccessTokens.select {
-                (AccessTokens.userId eq accessToken.userId) and (AccessTokens.token eq accessToken.token)
-            }.singleOrNull()
+            AccessTokens
+                .select {
+                    (AccessTokens.userId eq accessToken.userId) and (AccessTokens.token eq accessToken.token)
+                }
+                .singleOrNull()
         }
+
+        println("$existingAccessToken")
 
         if (existingAccessToken == null) return null
         if (accessToken.isExpired()) return null
@@ -50,9 +54,11 @@ object TokenManager {
         }
 
         val existingRefreshToken = transaction {
-            RefreshTokens.select {
-                (RefreshTokens.userId eq refreshToken.userId) and (RefreshTokens.token eq refreshToken.token)
-            }.singleOrNull()
+            RefreshTokens
+                .select {
+                    (RefreshTokens.userId eq refreshToken.userId) and (RefreshTokens.token eq refreshToken.token)
+                }
+                .singleOrNull()
         }
 
         if (existingRefreshToken == null) return null
@@ -82,7 +88,7 @@ object TokenManager {
         val algorithm = Algorithm.HMAC512(SECRET_KEY)
 
         val now = Date()
-        val nowPlusDay = Date(now.time + 86_400_000L)
+        val nowPlusDay = Date(now.time + 3_600_000L)
 
         val accessToken = JWT.create()
             .withSubject(userId)
@@ -131,9 +137,9 @@ object TokenManager {
 
     fun findAccessToken(userId: String): AccessToken? {
         val existingToken = transaction {
-            AccessTokens.select {
-                AccessTokens.userId eq userId
-            }.singleOrNull()
+            AccessTokens
+                .select { AccessTokens.userId eq userId }
+                .singleOrNull()
         }?.run {
             AccessToken(
                 id = this[AccessTokens.id],
@@ -148,9 +154,9 @@ object TokenManager {
 
     fun findRefreshToken(userId: String): RefreshToken? {
         val existingToken = transaction {
-            RefreshTokens.select {
-                RefreshTokens.userId eq userId
-            }.singleOrNull()
+            RefreshTokens
+                .select { RefreshTokens.userId eq userId }
+                .singleOrNull()
         }?.run {
             RefreshToken(
                 id = this[RefreshTokens.id],

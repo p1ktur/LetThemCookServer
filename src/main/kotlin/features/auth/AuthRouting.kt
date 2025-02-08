@@ -216,7 +216,9 @@ fun Routing.addAuthRoutes() {
                 Users
                     .select { Users.id eq userId }
                     .singleOrNull()
-            }?.asUserData()
+                    ?.asUserData()
+            }
+
 
             if (existingUser == null) {
                 call.respond(HttpStatusCode.NotFound, "User does not exist.")

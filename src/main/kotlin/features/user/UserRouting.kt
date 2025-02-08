@@ -6,11 +6,14 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import models.database.Followings
+import models.database.Recipes
 import models.database.User
 import models.database.User.Companion.asUserData
 import models.database.Users
 import models.server.RequestPair
+import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.div
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
@@ -70,12 +73,43 @@ fun Routing.addUserRoutes() {
                 Users
                     .select { Users.id eq userId }
                     .singleOrNull()
-            }?.asUserData()
+                    ?.asUserData()
+            }
+
+            val totalPreparations = transaction {
+                Recipes
+                    .select { Recipes.ownerId eq userId }
+                    .sumOf { it[Recipes.preparationsAmount] }
+            }
+
+            val averageRating = transaction {
+                val likes = Recipes.likesAmount.sum()
+                val dislikes = Recipes.dislikesAmount.sum()
+
+                val result = Recipes
+                    .slice(likes, dislikes)
+                    .select { Recipes.ownerId eq userId }
+                    .singleOrNull()
+
+                val totalLikes = result?.get(likes) ?: 0
+                val totalDislikes = result?.get(dislikes) ?: 0
+
+                val ratio = if (totalDislikes == 0) 0.0 else totalLikes.toDouble() / totalDislikes
+
+                val rowCount = Recipes
+                    .select { Recipes.ownerId eq userId }
+                    .count()
+
+                if (rowCount > 0) ratio.div(rowCount) else 0.0
+            }
 
             if (user == null) {
                 call.respond(HttpStatusCode.NotFound, "No such user exists.")
                 return@get
             }
+
+            user.totalPreparations = totalPreparations
+            user.averageRating = averageRating.toFloat()
 
             call.respond(HttpStatusCode.OK, user)
         } catch (_: Exception) {
