@@ -117,7 +117,7 @@ fun Routing.addAuthRoutes() {
             if (existingUser != null) {
                 val accessToken = findAccessToken(existingUser.id)
 
-                val newAccessToken = if (accessToken == null || accessToken.isExpired()) {
+                val newAccessToken = if (accessToken == null) {
                     val newToken = getNewAccessToken(existingUser.id)
 
                     transaction {
@@ -139,7 +139,7 @@ fun Routing.addAuthRoutes() {
 
                 val refreshToken = findRefreshToken(existingUser.id)
 
-                val newRefreshToken = if (refreshToken == null || refreshToken.isExpired()) {
+                val newRefreshToken = if (refreshToken == null) {
                     val newToken = getNewRefreshToken(existingUser.id)
 
                     transaction {
@@ -174,7 +174,7 @@ fun Routing.addAuthRoutes() {
         try {
             val accessToken = checkAccessToken()
 
-            if (accessToken == null || accessToken.isExpired()) {
+            if (accessToken == null) {
                 call.respond(HttpStatusCode.Gone)
                 return@get
             }
@@ -189,7 +189,7 @@ fun Routing.addAuthRoutes() {
         try {
             val refreshToken = checkRefreshToken()
 
-            if (refreshToken == null || refreshToken.isExpired()) {
+            if (refreshToken == null) {
                 call.respond(HttpStatusCode.Gone)
                 return@get
             }
@@ -209,8 +209,11 @@ fun Routing.addAuthRoutes() {
                 return@get
             }
 
-            val accessToken = checkAccessToken()
+            val accessToken = checkAccessToken(true)
             val refreshToken = checkRefreshToken()
+
+            println(accessToken)
+            println(refreshToken)
 
             val existingUser = transaction {
                 Users
@@ -219,13 +222,12 @@ fun Routing.addAuthRoutes() {
                     ?.asUserData()
             }
 
-
             if (existingUser == null) {
                 call.respond(HttpStatusCode.NotFound, "User does not exist.")
                 return@get
             }
 
-            if (accessToken == null || accessToken.isExpired()) {
+            if (accessToken == null) {
                 val newToken = getNewAccessToken(userId)
 
                 transaction {
@@ -241,7 +243,7 @@ fun Routing.addAuthRoutes() {
                 }
             }
 
-            if (refreshToken == null || refreshToken.isExpired()) {
+            if (refreshToken == null) {
                 val newToken = getNewRefreshToken(userId)
 
                 transaction {

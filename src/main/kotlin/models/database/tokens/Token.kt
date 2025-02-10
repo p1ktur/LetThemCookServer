@@ -8,7 +8,3 @@ interface Token {
     val token: String
     val expireDate: LocalDateTime
 }
-
-fun Token.isExpired(): Boolean {
-    return expireDate.isBefore(LocalDateTime.now())
-}

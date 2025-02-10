@@ -121,7 +121,7 @@ fun Routing.addRecipeRoutes() {
                                                 }
                                             }
                                     }
-                                    .groupBy(Recipes.id)
+                                    .groupBy(Recipes.id, Users.login)
                                     .orderBy(Recipes.publicationDate to SortOrder.DESC)
                                     .toList()
                                     .selectPage(page, perPage)
@@ -201,7 +201,7 @@ fun Routing.addRecipeRoutes() {
                             val likes = recipe.likesAmount
                             val dislikes = recipe.dislikesAmount
 
-                            val popularity = (likes.toDouble() / dislikes) * (likes + dislikes)
+                            val popularity = (likes.toDouble() / dislikes) * (likes + dislikes) * recipe.viewsAmount
 
                             popularity
                         }
@@ -212,7 +212,7 @@ fun Routing.addRecipeRoutes() {
                         val reviewsCount = Reviews.id.count()
 
                         Recipes
-                            .join(Followings, JoinType.INNER, onColumn = Recipes.ownerId, otherColumn = Followings.followedId)
+                            .join(Followings, JoinType.LEFT, onColumn = Recipes.ownerId, otherColumn = Followings.followedId)
                             .join(Users, JoinType.INNER, onColumn = Recipes.ownerId, otherColumn = Users.id)
                             .join(Reviews, JoinType.LEFT, onColumn = Recipes.id, otherColumn = Reviews.recipeId)
                             .slice(Recipes.columns + reviewsCount + Users.login)
@@ -437,6 +437,7 @@ fun Routing.addRecipeRoutes() {
                             it[bitmapId] = data.bitmapId
                             it[name] = data.name
                             it[description] = data.description
+                            it[cookingTime] = data.cookingTime
                             it[recipeJson] = data.recipeJson
                         }
                     )
@@ -547,7 +548,17 @@ fun Routing.addRecipeRoutes() {
                 RecipeCategories.deleteWhere {
                     RecipeCategories.recipeId eq recipeId
                 }
+
+                Reviews.deleteWhere {
+                    Reviews.recipeId eq recipeId
+                }
+
+                RecipeFiles.deleteWhere {
+                    RecipeFiles.recipeId eq recipeId
+                }
             }
+
+            FileManager.deleteRecipeFiles(userId, recipeId)
 
             val rowsAffected = transaction {
                 Recipes.deleteWhere { id eq recipeId }

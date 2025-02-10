@@ -58,7 +58,7 @@ object Recipes : Table("recipes") {
     val name = varchar("name", 255).nullable()
     val description = varchar("description", 255).nullable()
     val cookingTime = long("cookingTime").nullable()
-    val recipeJson = varchar("recipeJson", 255).nullable()
+    val recipeJson = varchar("recipeJson", 32768).nullable()
     val likesAmount = integer("likesAmount").default(0)
     val dislikesAmount = integer("dislikesAmount").default(0)
     val viewsAmount = integer("viewsAmount").default(0)

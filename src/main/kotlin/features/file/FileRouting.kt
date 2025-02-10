@@ -62,8 +62,6 @@ fun Routing.addFileRoutes() {
 
             val file = FileManager.getFile(userId, fileId, type, fileClass)
 
-            println("FILE: ${file?.absolutePath}")
-
             if (file?.exists() == true) {
                 call.response.header(
                     HttpHeaders.ContentDisposition,

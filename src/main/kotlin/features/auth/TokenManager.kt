@@ -2,6 +2,7 @@ package features.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.exceptions.TokenExpiredException
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -15,13 +16,26 @@ import java.util.*
 
 object TokenManager {
 
+    private sealed interface TokenParseResult {
+        data class Parsed(val token: Token) : TokenParseResult
+        data object Expired : TokenParseResult
+        data object Failed : TokenParseResult
+    }
+
+
     private const val SECRET_KEY = "LTW77pQchduMVecINRAJL6jXNCj1FZ7XJorZAbXzopTxnn4uMUYpeec7jZkKccQ1"
 
     // Checking
 
-    suspend fun RoutingContext.checkAccessToken(): AccessToken? {
+    suspend fun RoutingContext.checkAccessToken(ignoreExpired: Boolean = false): AccessToken? {
         val accessTokenString = getAccessTokenFromHeader(call.request.headers)
-        val accessToken = accessTokenString?.let { parseToken(it) } as? AccessToken
+        val tokenParseResult = accessTokenString?.let { parseToken(it) }
+        val accessToken = when (tokenParseResult) {
+            TokenParseResult.Expired -> if (ignoreExpired) return null else null
+            TokenParseResult.Failed -> return null
+            is TokenParseResult.Parsed -> tokenParseResult.token as? AccessToken
+            null -> return null
+        }
 
         if (accessToken == null) {
             call.respond(HttpStatusCode.BadRequest, "No access token provided.")
@@ -36,17 +50,15 @@ object TokenManager {
                 .singleOrNull()
         }
 
-        println("$existingAccessToken")
-
         if (existingAccessToken == null) return null
-        if (accessToken.isExpired()) return null
 
         return accessToken
     }
 
     suspend fun RoutingContext.checkRefreshToken(): RefreshToken? {
         val refreshTokenString = getRefreshTokenFromHeader(call.request.headers)
-        val refreshToken = refreshTokenString?.let { parseToken(it) } as? RefreshToken
+        val tokenParseResult = refreshTokenString?.let { parseToken(it) } as? TokenParseResult.Parsed
+        val refreshToken = tokenParseResult?.token as? RefreshToken
 
         if (refreshToken == null) {
             call.respond(HttpStatusCode.BadRequest, "No refresh token provided.")
@@ -62,7 +74,6 @@ object TokenManager {
         }
 
         if (existingRefreshToken == null) return null
-        if (refreshToken.isExpired()) return null
 
         return refreshToken
     }
@@ -172,7 +183,7 @@ object TokenManager {
     // Parsing
 
     @OptIn(InternalAPI::class)
-    private fun parseToken(token: String): Token? {
+    private fun parseToken(token: String): TokenParseResult {
         return try {
             val algorithm = Algorithm.HMAC512(SECRET_KEY)
             val verifier = JWT.require(algorithm).build()
@@ -182,23 +193,29 @@ object TokenManager {
 
             when (type) {
                 "Access" -> {
-                    AccessToken(
+                    val accessToken = AccessToken(
                         userId = decodedJWT.subject,
                         token = token,
                         expireDate = decodedJWT.expiresAt.toLocalDateTime()
                     )
+
+                    TokenParseResult.Parsed(accessToken)
                 }
                 "Refresh" -> {
-                    RefreshToken(
+                    val refreshToken = RefreshToken(
                         userId = decodedJWT.subject,
                         token = token,
                         expireDate = decodedJWT.expiresAt.toLocalDateTime()
                     )
+
+                    TokenParseResult.Parsed(refreshToken)
                 }
-                else -> null
+                else -> TokenParseResult.Failed
             }
+        } catch (_: TokenExpiredException) {
+            TokenParseResult.Expired
         } catch (_: Exception) {
-            null
+            TokenParseResult.Failed
         }
     }
 }

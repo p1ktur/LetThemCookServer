@@ -27,26 +27,28 @@ fun Routing.addReviewRoutes() {
             val page = call.request.queryParameters["page"]?.toIntOrNull()
             val perPage = call.request.queryParameters["perPage"]?.toIntOrNull()
 
-            val recipeId = call.request.queryParameters["id"]
+            val recipeId = call.request.queryParameters["recipeId"]
 
             if (recipeId == null) {
                 call.respond(HttpStatusCode.BadRequest, "No Recipe Id provided.")
                 return@get
             }
 
-            val reviews = Reviews
-                .select { Reviews.recipeId eq recipeId }
-                .toList()
-                .selectPage(page, perPage)
-                .map {
-                    Review(
-                        id = it[Reviews.id],
-                        authorId = it[Reviews.authorId],
-                        recipeId = it[Reviews.recipeId],
-                        reviewText = it[Reviews.reviewText],
-                        likesAmount = it[Reviews.likesAmount]
-                    )
-                }
+            val reviews = transaction {
+                Reviews
+                    .select { Reviews.recipeId eq recipeId }
+                    .toList()
+                    .selectPage(page, perPage)
+                    .map {
+                        Review(
+                            id = it[Reviews.id],
+                            authorId = it[Reviews.authorId],
+                            recipeId = it[Reviews.recipeId],
+                            reviewText = it[Reviews.reviewText],
+                            likesAmount = it[Reviews.likesAmount]
+                        )
+                    }
+            }
 
             if (reviews.isEmpty()) {
                 call.respond(HttpStatusCode.NotFound, "No reviews found.")

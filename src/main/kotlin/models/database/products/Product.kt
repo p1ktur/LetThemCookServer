@@ -7,18 +7,7 @@ import org.jetbrains.exposed.sql.Table
 data class Product(
     val id: Int = 0,
     val name: String
-) {
-    companion object {
-        fun fromWeightedProduct(text: String): Triple<String, Int, Int> {
-            val parts = text.split(", ")
-            val name = parts.firstOrNull().toString()
-            val weight = parts.find { it.contains("g") }?.replace("g", "")?.toIntOrNull() ?: 0
-            val amount = parts.find { it.contains("pc") }?.split(" ")?.firstOrNull()?.toIntOrNull() ?: 0
-
-            return Triple(name, weight, amount)
-        }
-    }
-}
+)
 
 @Serializable
 data class WeightedProduct(

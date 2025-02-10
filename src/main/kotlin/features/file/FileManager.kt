@@ -1,6 +1,5 @@
 package features.file
 
-import utils.smallHash
 import models.database.files.Files
 import models.database.files.RecipeFiles
 import models.enums.FileType
@@ -10,6 +9,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import utils.smallHash
 import java.io.File
 
 object FileManager {
@@ -141,6 +141,19 @@ object FileManager {
         }
     }
 
+    fun deleteRecipeFiles(userId: String, recipeId: String): Boolean {
+        return try {
+            val dirPath = getRecipePath(userId, recipeId)
+            val directory = File(dirPath)
+
+            directory.deleteRecursively()
+
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun getDirPath(userId: String, fileClass: FileClass): String {
         return FILE_ROOT_PATH + "\\user_${userId.smallHash()}" + when (fileClass) {
             FileClass.Profile -> "\\profile"
@@ -148,5 +161,9 @@ object FileManager {
             is FileClass.RecipeAttachment -> "\\recipe_${fileClass.recipeId.smallHash()}\\attachments"
             is FileClass.Block -> "\\recipe_${fileClass.recipeId.smallHash()}\\block_${fileClass.blockId.smallHash()}"
         }
+    }
+
+    private fun getRecipePath(userId: String, recipeId: String): String {
+        return FILE_ROOT_PATH + "\\user_${userId.smallHash()}\\recipe_${recipeId.smallHash()}"
     }
 }
