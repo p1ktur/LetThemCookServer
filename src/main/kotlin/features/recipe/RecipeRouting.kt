@@ -27,6 +27,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import utils.decode
 import utils.selectPage
 
+// Ideally if request is in different locale
+// it is should be that weighted products are decomposed, translated and composed back again
 fun Routing.addRecipeRoutes() {
     get("/recipes") {
         try {

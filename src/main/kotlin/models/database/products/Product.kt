@@ -30,4 +30,5 @@ data class WeightedProduct(
 object Products : Table("products") {
     val id = integer("id").autoIncrement()
     val name = varchar("name", 255).uniqueIndex()
+    val nameUA = varchar("nameUA", 255).uniqueIndex()
 }

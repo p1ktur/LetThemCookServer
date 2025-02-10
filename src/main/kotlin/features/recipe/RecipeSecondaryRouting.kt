@@ -25,6 +25,7 @@ fun Routing.addRecipeSecondaryRoutes() {
 
             val page = call.request.queryParameters["page"]?.toIntOrNull()
             val perPage = call.request.queryParameters["perPage"]?.toIntOrNull()
+            val language = call.request.queryParameters["language"] ?: "us"
 
             val searchText = call.request.queryParameters["searchText"]?.decode()
 
@@ -35,7 +36,12 @@ fun Routing.addRecipeSecondaryRoutes() {
                             .select { Categories.name like "%$searchText%" }
                             .toList()
                             .selectPage(page, perPage)
-                            .map { Category(id = it[Categories.id], name = it[Categories.name]) }
+                            .map {
+                                Category(
+                                    id = it[Categories.id],
+                                    name = if (language == "uk") it[Categories.nameUA] else it[Categories.name]
+                                )
+                            }
                     }
                 }
                 else -> {
@@ -44,7 +50,12 @@ fun Routing.addRecipeSecondaryRoutes() {
                             .selectAll()
                             .toList()
                             .selectPage(page, perPage)
-                            .map { Category(id = it[Categories.id], name = it[Categories.name]) }
+                            .map {
+                                Category(
+                                    id = it[Categories.id],
+                                    name = if (language == "uk") it[Categories.nameUA] else it[Categories.name]
+                                )
+                            }
                     }
                 }
             }
@@ -71,6 +82,7 @@ fun Routing.addRecipeSecondaryRoutes() {
 
             val page = call.request.queryParameters["page"]?.toIntOrNull()
             val perPage = call.request.queryParameters["perPage"]?.toIntOrNull()
+            val language = call.request.queryParameters["language"] ?: "us"
 
             val searchText = call.request.queryParameters["searchText"]?.decode()
 
@@ -81,7 +93,12 @@ fun Routing.addRecipeSecondaryRoutes() {
                             .select { Products.name like "%$searchText%" }
                             .toList()
                             .selectPage(page, perPage)
-                            .map { Product(id = it[Products.id], name = it[Products.name]) }
+                            .map {
+                                Product(
+                                    id = it[Products.id],
+                                    name = if (language == "uk") it[Products.nameUA] else it[Products.name]
+                                )
+                            }
                     }
                 }
                 else -> {
@@ -90,7 +107,12 @@ fun Routing.addRecipeSecondaryRoutes() {
                             .selectAll()
                             .toList()
                             .selectPage(page, perPage)
-                            .map { Product(id = it[Products.id], name = it[Products.name]) }
+                            .map {
+                                Product(
+                                    id = it[Products.id],
+                                    name = if (language == "uk") it[Products.nameUA] else it[Products.name]
+                                )
+                            }
                     }
                 }
             }
