@@ -42,7 +42,7 @@ fun Routing.addRecipeRoutes() {
             val page = call.request.queryParameters["page"]?.toIntOrNull()
             val perPage = call.request.queryParameters["perPage"]?.toIntOrNull()
 
-            val userId = call.request.queryParameters["id"]
+            val userId = call.request.queryParameters["userId"]
             val searchText = call.request.queryParameters["searchText"]?.decode()
 
             val recipes = when {
@@ -55,7 +55,7 @@ fun Routing.addRecipeRoutes() {
                             .join(Users, JoinType.INNER, onColumn = Recipes.ownerId, otherColumn = Users.id)
                             .slice(Recipes.columns + reviewsCount + Users.login)
                             .select { Recipes.ownerId eq userId }
-                            .groupBy(Recipes.id)
+                            .groupBy(Recipes.id, Users.login)
                             .orderBy(Recipes.publicationDate to SortOrder.DESC)
                             .toList()
                             .map { it.asRecipeData(reviewsCount) }

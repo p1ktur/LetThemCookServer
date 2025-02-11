@@ -55,23 +55,32 @@ fun Routing.addUserRoutes() {
 
     get("/user") {
         try {
-            if (checkAccessToken() == null) {
+            val accessToken = checkAccessToken()
+
+            if (accessToken == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Access token expired or absent.")
                 return@get
             }
 
-            val userId = call.request.queryParameters["id"]
+            val userId = call.request.queryParameters["userId"]
 
             if (userId == null) {
                 call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
                 return@get
             }
 
+            val requestUserId = accessToken.userId
+
             val user = transaction {
                 Users
                     .select { Users.id eq userId }
                     .singleOrNull()
                     ?.asUserData()
+            }
+
+            if (user == null) {
+                call.respond(HttpStatusCode.NotFound, "No such user exists.")
+                return@get
             }
 
             val totalPreparations = transaction {
@@ -101,13 +110,15 @@ fun Routing.addUserRoutes() {
                 if (rowCount > 0) ratio.div(rowCount) else 0.0
             }
 
-            if (user == null) {
-                call.respond(HttpStatusCode.NotFound, "No such user exists.")
-                return@get
+            val isFollowed = transaction {
+                Followings
+                    .select { (Followings.followerId eq requestUserId) and (Followings.followedId eq userId) }
+                    .singleOrNull()
             }
 
             user.totalPreparations = totalPreparations
             user.averageRating = averageRating.toFloat()
+            user.isFollowed = isFollowed != null
 
             call.respond(HttpStatusCode.OK, user)
         } catch (_: Exception) {
@@ -166,7 +177,7 @@ fun Routing.addUserRoutes() {
                 return@post
             }
 
-            val userId = call.request.queryParameters["id"]
+            val userId = call.request.queryParameters["userId"]
 
             if (userId == null) {
                 call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
@@ -204,7 +215,7 @@ fun Routing.addUserRoutes() {
                 return@post
             }
 
-            val userId = call.request.queryParameters["id"]
+            val userId = call.request.queryParameters["userId"]
 
             if (userId == null) {
                 call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
@@ -241,7 +252,7 @@ fun Routing.addUserRoutes() {
                 return@put
             }
 
-            val userId = call.request.queryParameters["id"]
+            val userId = call.request.queryParameters["userId"]
 
             if (userId == null) {
                 call.respond(HttpStatusCode.BadRequest, "No User ID provided.")

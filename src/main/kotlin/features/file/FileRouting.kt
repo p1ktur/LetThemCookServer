@@ -44,11 +44,6 @@ fun Routing.addFileRoutes() {
                 }
             }
 
-            if (accessToken.userId != userId) {
-                call.respond(HttpStatusCode.Unauthorized, "Wrong access token.")
-                return@get
-            }
-
             val recipeId = call.request.queryParameters["recipeId"]
             val blockId = call.request.queryParameters["blockId"]
             val isAttachment = call.request.queryParameters["isAttachment"]?.toBoolean() ?: false

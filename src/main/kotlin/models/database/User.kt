@@ -46,7 +46,7 @@ data class User(
                 averageRating = this[averageRating],
                 totalRecipes = this[Users.totalRecipes],
                 totalPreparations = this[totalPreparations],
-                totalFollowers = this[totalFollowers],
+                totalFollowers = this[totalFollowers]
             )
         }
     }
