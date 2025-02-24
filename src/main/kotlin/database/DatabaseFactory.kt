@@ -9,10 +9,10 @@ object DatabaseFactory {
     fun createAndConnect() {
         val config = HikariConfig()
 
-        config.jdbcUrl = "jdbc:postgresql://localhost:5432/LetThemCook"
+        config.jdbcUrl = "jdbc:postgresql://localhost:5434/LetThemCook"
         config.driverClassName = "org.postgresql.Driver"
         config.username = "postgres"
-        config.password = "admin123"
+        config.password = "admin"
         config.maximumPoolSize = 10
         config.isAutoCommit = false
         config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"

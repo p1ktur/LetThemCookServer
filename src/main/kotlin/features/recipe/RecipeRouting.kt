@@ -22,6 +22,7 @@ import models.database.products.WeightedProduct
 import models.enums.FileType
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.transactions.transaction
 import utils.decode
@@ -569,6 +570,17 @@ fun Routing.addRecipeRoutes() {
             if (rowsAffected == 0) {
                 call.respond(HttpStatusCode.NotFound, "Recipe was not deleted.")
                 return@delete
+            }
+
+            transaction {
+                Users.update(
+                    where = {
+                        Users.id eq userId
+                    },
+                    body = {
+                        it.update(totalRecipes, totalRecipes - 1)
+                    }
+                )
             }
 
             call.respond(HttpStatusCode.OK)
