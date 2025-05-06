@@ -282,6 +282,7 @@ fun Routing.addRecipeRoutes() {
             }
 
             val recipeId = call.request.queryParameters["recipeId"]
+            val language = call.request.queryParameters["language"] ?: "us"
 
             if (recipeId == null) {
                 call.respond(HttpStatusCode.BadRequest, "No User ID provided.")
@@ -312,7 +313,10 @@ fun Routing.addRecipeRoutes() {
                     .select { RecipeProducts.recipeId eq recipe.id }
                     .toList()
                     .map {
-                        val product = Product(it[Products.id], it[Products.name])
+                        val product = Product(
+                            id = it[Products.id],
+                            name = if (language == "uk") it[Products.nameUA] else it[Products.name]
+                        )
                         WeightedProduct(product, it[RecipeProducts.weight], it[RecipeProducts.amount])
                     }
             }
@@ -322,7 +326,12 @@ fun Routing.addRecipeRoutes() {
                     .join(Categories, JoinType.INNER, onColumn = categoryId, otherColumn = Categories.id)
                     .select { RecipeCategories.recipeId eq recipeId }
                     .toList()
-                    .map { Category(it[Categories.id], it[Categories.name]) }
+                    .map {
+                        Category(
+                            id = it[Categories.id],
+                            name = if (language == "uk") it[Categories.nameUA] else it[Categories.name]
+                        )
+                    }
             }
 
             val attachmentIds = transaction {

@@ -33,7 +33,9 @@ fun Routing.addRecipeSecondaryRoutes() {
                 searchText != null -> {
                     transaction {
                         Categories
-                            .select { (Categories.name like "%$searchText%") or (Categories.nameUA like "%$searchText%") }
+                            .select {
+                                (Categories.name.lowerCase() like "%${searchText.lowercase()}%") or (Categories.nameUA.lowerCase() like "%${searchText.lowercase()}%")
+                            }
                             .toList()
                             .selectPage(page, perPage)
                             .map {
@@ -90,7 +92,9 @@ fun Routing.addRecipeSecondaryRoutes() {
                 searchText != null -> {
                     transaction {
                         Products
-                            .select { (Products.name like "%$searchText%") or (Products.nameUA like "%$searchText%") }
+                            .select {
+                                (Products.name.lowerCase() like "%${searchText.lowercase()}%") or (Products.nameUA.lowerCase() like "%${searchText.lowercase()}%")
+                            }
                             .toList()
                             .selectPage(page, perPage)
                             .map {
