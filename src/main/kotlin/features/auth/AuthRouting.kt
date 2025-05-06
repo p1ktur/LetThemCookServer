@@ -212,9 +212,6 @@ fun Routing.addAuthRoutes() {
             val accessToken = checkAccessToken(true)
             val refreshToken = checkRefreshToken()
 
-            println(accessToken)
-            println(refreshToken)
-
             val existingUser = transaction {
                 Users
                     .select { Users.id eq userId }

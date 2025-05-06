@@ -392,7 +392,7 @@ fun Routing.addRecipeRoutes() {
                 val products = transaction {
                     data.products.map { weightedProduct ->
                         Products
-                            .select { Products.name eq weightedProduct.data.name }
+                            .select { (Products.name eq weightedProduct.data.name) or (Products.nameUA eq weightedProduct.data.name) }
                             .singleOrNull()
                             ?.to(weightedProduct)
                     }
@@ -415,7 +415,7 @@ fun Routing.addRecipeRoutes() {
                 val categories = transaction {
                     data.categories.map { category ->
                         Categories
-                            .select { Categories.name eq category.name }
+                            .select { (Categories.name eq category.name) or (Categories.nameUA eq category.name) }
                             .singleOrNull()
                     }
                 }
@@ -453,7 +453,7 @@ fun Routing.addRecipeRoutes() {
 
                     data.products.map { weightedProduct ->
                         Products
-                            .select { Products.name eq weightedProduct.data.name }
+                            .select { (Products.name eq weightedProduct.data.name) or (Products.nameUA eq weightedProduct.data.name) }
                             .singleOrNull()
                             ?.to(weightedProduct)
                     }
@@ -480,7 +480,7 @@ fun Routing.addRecipeRoutes() {
 
                     data.categories.map { category ->
                         Categories
-                            .select { Categories.name eq category.name }
+                            .select { (Categories.name eq category.name) or (Categories.nameUA eq category.name) }
                             .singleOrNull()
                     }
                 }
