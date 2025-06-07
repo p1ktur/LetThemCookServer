@@ -1,32 +1,24 @@
 package features.recipe
 
 import features.auth.TokenManager.checkAccessToken
-import features.file.FileClass
-import features.file.FileManager
+import features.file.*
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import models.database.*
 import models.database.Recipe.Companion.asRecipeData
-import models.database.categories.Categories
-import models.database.categories.Category
-import models.database.categories.RecipeCategories
+import models.database.categories.*
 import models.database.categories.RecipeCategories.categoryId
-import models.database.files.Files
-import models.database.files.RecipeFiles
+import models.database.files.*
 import models.database.files.RecipeFiles.fileId
-import models.database.products.Product
-import models.database.products.Products
-import models.database.products.RecipeProducts
-import models.database.products.WeightedProduct
-import models.enums.FileType
+import models.database.products.*
+import models.enums.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
-import org.jetbrains.exposed.sql.transactions.transaction
-import utils.decode
-import utils.selectPage
+import org.jetbrains.exposed.sql.transactions.*
+import utils.*
 
 // Ideally if request is in different locale
 // it is should be that weighted products are decomposed, translated and composed back again
@@ -96,7 +88,7 @@ fun Routing.addRecipeRoutes() {
                                     .join(Reviews, JoinType.LEFT, onColumn = Recipes.id, otherColumn = Reviews.recipeId)
                                     .slice(Recipes.columns + reviewsCount + Users.login)
                                     .select {
-                                        (Recipes.name like "%$searchText%")
+                                        (Recipes.name.lowerCase() like "%${searchText.lowercase()}%")
                                             .run {
                                                 if (categoryIds.isNotEmpty()) {
                                                     and(
@@ -135,9 +127,17 @@ fun Routing.addRecipeRoutes() {
                                     .slice(Categories.id)
                                     .run {
                                         if (categories.isEmpty()) {
-                                            select { Categories.name like "%$searchText%" }
+                                            select {
+                                                Categories.name.lowerCase() like "%${searchText.lowercase()}%" or
+                                                        (Categories.nameUA.lowerCase() like "%${searchText.lowercase()}%")
+                                            }
                                         } else {
-                                            select { (Categories.name like "%$searchText%") or (Categories.name inList categories) }
+                                            select {
+                                                (Categories.name.lowerCase() like "%${searchText.lowercase()}%") or
+                                                        (Categories.nameUA.lowerCase() like "%${searchText.lowercase()}%") or
+                                                        (Categories.name inList categories) or
+                                                        (Categories.nameUA inList categories)
+                                            }
                                         }
                                     }
                                     .map { it[Categories.id] }
@@ -154,8 +154,8 @@ fun Routing.addRecipeRoutes() {
                                                 .slice(RecipeCategories.recipeId)
                                                 .select { categoryId inList categoryIds }
                                                 .groupBy(RecipeCategories.recipeId)
-                                                .having { categoryId.count() greaterEq categoryIds.size.toLong() }
                                         }
+                                        .groupBy(Recipes.id, Users.login)
                                         .toList()
                                         .selectPage(page, perPage)
                                         .map { it.asRecipeData(reviewsCount) }
@@ -166,9 +166,17 @@ fun Routing.addRecipeRoutes() {
                                     .slice(Products.id)
                                     .run {
                                         if (products.isEmpty()) {
-                                            select { Products.name like "%$searchText%" }
+                                            select {
+                                                Products.name.lowerCase() like "%${searchText.lowercase()}%" or
+                                                        (Products.nameUA.lowerCase() like "%${searchText.lowercase()}%")
+                                            }
                                         } else {
-                                            select { (Products.name like "%$searchText%") or (Products.name inList products) }
+                                            select {
+                                                (Products.name.lowerCase() like "%${searchText.lowercase()}%") or
+                                                        (Products.nameUA.lowerCase() like "%${searchText.lowercase()}%") or
+                                                        (Products.name inList products) or
+                                                        (Products.nameUA inList products)
+                                            }
                                         }
                                     }
                                     .map { it[Products.id] }
@@ -185,8 +193,8 @@ fun Routing.addRecipeRoutes() {
                                                 .slice(RecipeProducts.recipeId)
                                                 .select { RecipeProducts.productId inList productIds }
                                                 .groupBy(RecipeProducts.recipeId)
-                                                .having { RecipeProducts.productId.count() greaterEq productIds.size.toLong() }
                                         }
+                                        .groupBy(Recipes.id, Users.login)
                                         .toList()
                                         .selectPage(page, perPage)
                                         .map { it.asRecipeData(reviewsCount) }
